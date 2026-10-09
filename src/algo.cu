@@ -1503,13 +1503,16 @@ __global__ void ppo_loss_compute(
         float ratio = __expf(logratio);
 
         // Value loss + gradient: 0.5 * max((v-r)^2, (v_clip-r)^2).
-        // When clipped term wins, v_clip is constant in val_pred → grad 0.
+        // The clipped term is constant only outside the clipping interval.
         float v_error = val_pred - val;
         float v_clipped = val + fmaxf(-a.vf_clip_coef, fminf(a.vf_clip_coef, v_error));
         float v_loss_unclipped = (val_pred - ret) * (val_pred - ret);
         float v_loss_clipped = (v_clipped - ret) * (v_clipped - ret);
         float v_loss = 0.5f * fmaxf(v_loss_unclipped, v_loss_clipped);
-        float d_val_pred = (v_loss_clipped > v_loss_unclipped) ? 0.0f : (val_pred - ret);
+        float d_val_pred = val_pred - ret;
+        if (v_loss_clipped > v_loss_unclipped) {
+            d_val_pred = (fabsf(v_error) <= a.vf_clip_coef) ? v_clipped - ret : 0.0f;
+        }
         a.grad_values_pred[nt] = inv_NT * a.vf_coef * d_val_pred;
         float clip_lo = 1.0f - a.clip_coef;
         float clip_hi = 1.0f + a.clip_coef;
