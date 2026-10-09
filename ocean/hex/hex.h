@@ -268,6 +268,8 @@ void puf_step(Hex* env) {
     if (hex_human_controls(env) < 0) {
         return;
     }
+    env->agents[0].rewards[0] = 0;
+    env->agents[0].terminals[0] = 0;
     env->tick += 1;
     env->last_env_cell = -1;
     int action = (int)env->agents[0].actions[0];
