@@ -3418,6 +3418,11 @@ TrainResult launch_train(Ini* ini) {
         && "vec.total_agents must be divisible by minibatch rows");
     assert(horizon % ADV_VEC_WIDTH == 0
         && "train.horizon must be a multiple of ADV_VEC_WIDTH (4 float / 8 bf16)");
+    // The per-epoch loop truncates this count; zero silently skips all updates.
+    float replay_ratio = puf_ini_get(ini, "train", "replay_ratio");
+    assert(replay_ratio * (agents * horizon) / mb >= 1.0f
+        && "train.replay_ratio must schedule at least one minibatch per epoch; "
+           "increase replay_ratio or decrease minibatch_size");
 
     const char* run_id = puf_ini_get_str(ini, "base", "run_id");
     if (!run_id[0] || strcmp(run_id, "None") == 0) {
